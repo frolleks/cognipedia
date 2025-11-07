@@ -1,0 +1,7 @@
+{
+  "name": "cognipedia-root",
+  "private": true,
+  "workspaces": [
+    "./app"
+  ]
+}
