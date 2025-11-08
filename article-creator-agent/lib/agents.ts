@@ -8,7 +8,7 @@ import {
   editorAgentPrompt,
 } from "./system-prompts";
 
-const DEFAULT_MODEL = "minimax/minimax-m2:free";
+const DEFAULT_MODEL = process.env.MODEL!;
 
 export const researchAgent = new Agent({
   system: researchAgentPrompt,

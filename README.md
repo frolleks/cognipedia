@@ -32,6 +32,8 @@ cp ./app/.env.example ./app/.env
 
 Then fill in the environment variables with their values respectively.
 
+For the `article-creator-agent`, you can customize which LLM to use to whatever that's available in OpenRouter.
+
 ### Migrate to the database
 
 ```sh
