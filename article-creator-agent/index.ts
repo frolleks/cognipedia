@@ -42,6 +42,58 @@ function looksLikeArticle(text: string) {
   return /^#\s+\S+/m.test(text) && text.includes("## References");
 }
 
+type StepResult = {
+  content?: Array<{ type: string; text?: string }>;
+  finishReason?: string;
+  toolCalls?: Array<{ toolName: string }>;
+  usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number };
+};
+
+function summarizeStepText(step: StepResult) {
+  const text = step.content
+    ?.filter((part) => part.type === "text" && part.text)
+    .map((part) => part.text)
+    .join(" ")
+    .trim();
+  if (!text) return "";
+  const normalized = text.replace(/\s+/g, " ");
+  return normalized.length > 240
+    ? `${normalized.slice(0, 237)}...`
+    : normalized;
+}
+
+function logAgentSteps(label: string, steps?: StepResult[]) {
+  if (!steps || steps.length === 0) {
+    console.log(`   ↳ ${label}: no step metadata available`);
+    return;
+  }
+
+  console.log(`   ↳ ${label}: ${steps.length} step(s)`);
+  steps.forEach((step, index) => {
+    const toolCalls = step.toolCalls ?? [];
+    const summary = summarizeStepText(step);
+    const usage = step.usage ?? {};
+    console.log(
+      [
+        `      Step ${index + 1}`,
+        `finish=${step.finishReason ?? "unknown"}`,
+        `tools=${toolCalls.length}`,
+        `usage(in/out)=${usage.inputTokens ?? "?"}/${
+          usage.outputTokens ?? "?"
+        }`,
+      ].join(" | ")
+    );
+    if (toolCalls.length > 0) {
+      toolCalls.forEach((call, idx) => {
+        console.log(`         • Tool call ${idx + 1}: ${call.toolName}`);
+      });
+    }
+    if (summary) {
+      console.log(`         ↳ Text: ${summary}`);
+    }
+  });
+}
+
 async function orchestrateArticleCreation(topic: string) {
   const researchNotes = await runStep("Researching sources", async () => {
     const result = await researchAgent.generate({
@@ -52,10 +104,11 @@ async function orchestrateArticleCreation(topic: string) {
         "1. Use tools when needed to cite authoritative sources published within the last decade.",
         "2. Surface consensus, notable debates, statistics, and chronology.",
         "3. Output Markdown with two sections:",
-        "   ## Insights – bullet list of facts ending with citation markers like [1].",
-        "   ## References – numbered list mapping markers to source title, publisher, date, and URL.",
+        "   ## Insights - bullet list of facts ending with citation markers like [1].",
+        "   ## References - numbered list mapping markers to source title, publisher, date, and URL.",
       ].join("\n"),
     });
+    logAgentSteps("Research", result.steps as StepResult[]);
     return result.text;
   });
   console.log(`   ↳ Research notes length: ${countWords(researchNotes)} words`);
@@ -71,6 +124,7 @@ async function orchestrateArticleCreation(topic: string) {
         researchNotes,
       ].join("\n\n"),
     });
+    logAgentSteps("Outline", result.steps as StepResult[]);
     return result.text;
   });
   console.log(`   ↳ Outline length: ${countWords(outline)} words`);
@@ -99,6 +153,7 @@ async function orchestrateArticleCreation(topic: string) {
         researchNotes,
       ].join("\n"),
     });
+    logAgentSteps("Drafting", result.steps as StepResult[]);
     return result.text;
   });
 
@@ -129,6 +184,7 @@ async function orchestrateArticleCreation(topic: string) {
           "=== END RESEARCH NOTES ===",
         ].join("\n"),
       });
+      logAgentSteps("Editing", result.steps as StepResult[]);
       return result.text;
     }
   );
