@@ -62,7 +62,7 @@ export default async function SearchResults({
               {results.map((article) => (
                 <li
                   key={article.id}
-                  className="rounded-lg border bg-card py-2 px-4 transition hover:border-foreground/40"
+                  className="rounded-lg bg-card py-2 px-4 transition hover:border hover:shadow-sm"
                 >
                   <Link
                     href={`/page/${article.slug}`}
