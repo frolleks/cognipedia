@@ -2,6 +2,7 @@
   "name": "cognipedia-root",
   "private": true,
   "workspaces": [
-    "./app"
+    "./app",
+    "./article-creator-agent"
   ]
 }
